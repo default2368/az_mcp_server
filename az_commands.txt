@@ -1,0 +1,31 @@
+ssh -i ~/.ssh/my_new_key azureuser@20.199.25.97 # connettere con chiave pubblica
+RESOURCE_GROUP_NAME=my_VM
+LOCATION=<location>
+az group create --name $RESOURCE_GROUP_NAME --location $LOCATION
+
+export CONTAINER_REGISTRY_NAME=mycontainer2368
+
+az acr create --resource-group my_VM \
+  --name $CONTAINER_REGISTRY_NAME \
+  --sku Basic
+
+RESOURCE_GROUP_NAME=my_VM
+CONTAINER_REGISTRY_NAME=mycontainer2368
+az acr build --resource-group $RESOURCE_GROUP_NAME --registry $CONTAINER_REGISTRY_NAME --image fastapi-demo:latest .
+
+export CONTAINER_REGISTRY_NAME=mycontainer2368
+az acr login --name $CONTAINER_REGISTRY_NAME
+
+docker tag fastapi-demo:latest mycontainer2368.azurecr.io/fastapi-demo:latest # tagga immagine localmente
+docker push mycontainer2368.azurecr.io/fastapi-demo:latest # push dell'immagine
+az acr show --name $CONTAINER_REGISTRY_NAME --query "loginServer" --output tsv # Trova l'URL del registry --> mycontainer2368.azurecr.io
+
+# Create an App Service Plan
+RESOURCE_GROUP_NAME=my_VM
+AZURE_SUBSCRIPTION_NAME=fastapi-plan
+az webapp create \
+  --resource-group $RESOURCE_GROUP_NAME \
+  --plan $AZURE_SUBSCRIPTION_NAME \
+  --name fastapi-demo \
+  --deployment-container-image-name mycontainer2368.azurecr.io/fastapi-demo:latest
+
